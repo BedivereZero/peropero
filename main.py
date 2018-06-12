@@ -5,19 +5,36 @@ import json
 import os
 import re
 import requests
+import sqlite3
 
 API = 'http://m.weibo.cn/container/getIndex'
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.84 Safari/537.36'}
 
+
+def create_database(path):
+    """ create database """
+    with open('create.sql') as fobj:
+        sql = fobj.read()
+    with sqlite3.connect(path) as cnx:
+        cnx.executescript(sql)
+
 def main():
     """pass"""
-    weiboname = ''
+    weiboname = '咸鱼面儿'
+    # create database
+    dbpath = os.path.abspath('peropero.sqlite')
+    if not os.path.exists(dbpath):
+        create_database(dbpath)
     workpath = os.path.abspath(os.path.join('.', weiboname))
     if not os.path.exists(workpath):
         os.mkdir(workpath)
     res = requests.get(url='http://m.weibo.cn/n/{name}'.format(name=weiboname))
     cookie = res.headers.get('Set-Cookie')
-    fid = re.search(r'(\d{16})', cookie).group(1)
+    fid = int(re.match(r'^fid%3D(\d+)%26uicode%3D\d+', res.cookies.get('M_WEIBOCN_PARAMS')).group(1))
+    userid = int(re.match(r'https://m.weibo.cn/u/(\d+)', res.url).group(1))
+    # insert into peropero
+    print(fid)
+    return 0
     res = requests.get(url=API, params=dict(containerid=fid))
     cont = res.json()
     tabs = cont['data']['tabsInfo']['tabs']
@@ -53,7 +70,7 @@ def main():
                         headers=HEADERS,
                     )
                     filename = os.path.basename(pic['large']['url'])
-                    filepath = os.path.join(workpath, filename)
+                    filepath = os.path.join(workpath, filename.encode('utf-8'))
                     with open(filepath, 'wb') as fobj:
                         fobj.write(res.content)
 
