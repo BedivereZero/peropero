@@ -73,11 +73,6 @@ def main():
                     continue
                 print('parsering {text}'.format(text=card['mblog'].get('raw_text')))
                 for pic in card['mblog']['pics']:
-                    res = requests.get(
-                        url=pic['large']['url'],
-                        headers=HEADERS,
-                    )
-
                     # insert image info into database
                     with sqlite3.connect(DBNAME) as cnx:
                         cnx.execute(
@@ -91,6 +86,18 @@ def main():
                         )
 
                     # download image
+                    try:
+                        res = requests.get(
+                            url=pic['large']['url'],
+                            headers=HEADERS,
+                        )
+                    except requests.exceptions.RequestException as ex:
+                        print('download image {url} failed, {ex}'.format(url=pic['large']['url'], ex=ex))
+                        download = False
+                    else:
+                        download = True
+
+                    # save image
                     filename = os.path.basename(pic['large']['url'])
                     filepath = os.path.join(workpath, filename)
                     with open(filepath, 'wb') as fobj:
@@ -100,7 +107,7 @@ def main():
                     with sqlite3.connect(DBNAME) as cnx:
                         cnx.execute('UPDATE images SET download = ? WHERE imageid = ?',
                             (
-                                True,
+                                download,
                                 pic['pid'],
                             ),
                         )
