@@ -5,7 +5,7 @@ CREATE TABLE users(
 );
 
 CREATE TABLE images(
-    imageid     INTEGER     NOT NULL,
+    imageid     VARCHAR(64) NOT NULL,
     userid      INTEGER     NOT NULL,
     url         VARCHAR(64) NOT NULL,
     download    BOOLEAN     NOT NULL,

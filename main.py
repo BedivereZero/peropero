@@ -21,29 +21,36 @@ def create_database(path):
 
 def main():
     """pass"""
-    weiboname = u'咸鱼面儿'
+    weiboname = u''
+
     # create database
     dbpath = os.path.abspath(DBNAME)
     if not os.path.exists(dbpath):
         create_database(dbpath)
+
+    # create work directory
     workpath = os.path.abspath(os.path.join('.', weiboname))
     if not os.path.exists(workpath):
         os.mkdir(workpath)
-    res = requests.get(url='http://m.weibo.cn/n/{name}'.format(name=weiboname.encode('utf-8')))
-    cookie = res.headers.get('Set-Cookie')
+    res = requests.get(url='http://m.weibo.cn/n/{name}'.format(name=weiboname))
     fid = int(re.match(r'^fid%3D(\d+)%26uicode%3D\d+', res.cookies.get('M_WEIBOCN_PARAMS')).group(1))
     userid = int(re.match(r'https://m.weibo.cn/u/(\d+)', res.url).group(1))
+
     # insert into peropero
     with sqlite3.connect(DBNAME) as cnx:
         cur = cnx.execute('SELECT * FROM users WHERE userid = {id}'.format(id=userid))
         if not cur.fetchall():
             cnx.execute('INSERT INTO users VALUES(?, ?)', (userid, weiboname))
+
+    # get weibo container
     res = requests.get(url=API, params=dict(containerid=fid))
     cont = res.json()
     tabs = cont['data']['tabsInfo']['tabs']
     for tab in cont['data']['tabsInfo']['tabs']:
         if tab['tab_type'] == 'weibo':
             cid = tab.get('containerid')
+
+    # get page
     page = 1
     res = requests.get(
         url=API,
@@ -51,9 +58,8 @@ def main():
         params=dict(containerid=cid),
     )
     cont = res.json()
-    result = dict()
-    result.update(cont)
-    while cont.get('ok') == 1:
+    while cont.get('ok') == 1 and page < 5:
+        print(page)
         data = cont.get('data')
         if data.get('cards'):
             for card in data.get('cards'):
@@ -71,11 +77,33 @@ def main():
                         url=pic['large']['url'],
                         headers=HEADERS,
                     )
+
+                    # insert image info into database
+                    with sqlite3.connect(DBNAME) as cnx:
+                        cnx.execute(
+                            'INSERT INTO images VALUES(?, ?, ?, ?)',
+                            (
+                                pic['pid'],
+                                userid,
+                                pic['large']['url'],
+                                False
+                            ),
+                        )
+
+                    # download image
                     filename = os.path.basename(pic['large']['url'])
-                    filepath = os.path.join(workpath, filename.encode('utf-8'))
+                    filepath = os.path.join(workpath, filename)
                     with open(filepath, 'wb') as fobj:
                         fobj.write(res.content)
 
+                    # update download flag
+                    with sqlite3.connect(DBNAME) as cnx:
+                        cnx.execute('UPDATE images SET download = ? WHERE imageid = ?',
+                            (
+                                True,
+                                pic['pid'],
+                            ),
+                        )
         else:
             break
         page += 1
@@ -88,13 +116,6 @@ def main():
             ),
         )
         cont = res.json()
-        result.update(cont)
-    json.dump(
-        obj=result,
-        fp=open('temp.json', 'w'),
-        indent=2,
-        sort_keys=True,
-    )
 
 if __name__ == '__main__':
     main()
