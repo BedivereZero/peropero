@@ -12,12 +12,43 @@ HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.3
 DBNAME = 'peropero.sqlite'
 
 
+
 def create_database(path):
     """ create database """
     with open('create.sql') as fobj:
         sql = fobj.read()
     with sqlite3.connect(path) as cnx:
         cnx.executescript(sql)
+
+
+def download_image(workpath, picture):
+    """ download image """
+    try:
+        res = requests.get(
+            url=picture['large']['url'],
+            headers=HEADERS,
+        )
+    except requests.exceptions.RequestException as ex:
+        print('download image {url} failed, {ex}'.format(url=picture['large']['url'], ex=ex))
+        download = False
+    else:
+        download = True
+
+    # save image
+    if download:
+        filename = os.path.basename(picture['large']['url'])
+        filepath = os.path.join(workpath, filename)
+        with open(filepath, 'wb') as fobj:
+            fobj.write(res.content)
+
+    # update download flag
+    with sqlite3.connect(DBNAME) as cnx:
+        cnx.execute('UPDATE images SET download = ? WHERE imageid = ?',
+            (
+                download,
+                picture['pid'],
+            ),
+        )
 
 def main():
     """pass"""
@@ -73,44 +104,29 @@ def main():
                     continue
                 print('parsering {text}'.format(text=card['mblog'].get('raw_text')))
                 for pic in card['mblog']['pics']:
-                    # insert image info into database
+                    # insert image info into database if image has not been seen
                     with sqlite3.connect(DBNAME) as cnx:
-                        cnx.execute(
-                            'INSERT INTO images VALUES(?, ?, ?, ?)',
-                            (
-                                pic['pid'],
-                                userid,
-                                pic['large']['url'],
-                                False
-                            ),
-                        )
+                        cur = cnx.execute('SELECT download FROM images WHERE imageid = ?', pic['pid'])
+                        record = cur.fetchone()
+                        if record:
+                            download = bool(record[0])
+                        else:
+                            download = False
+                            cnx.execute(
+                                'INSERT INTO images(imageid, userid, url) VALUES(?, ?, ?)',
+                                (
+                                    pic['pid'],
+                                    userid,
+                                    pic['large']['url'],
+                                ),
+                            )
 
-                    # download image
-                    try:
-                        res = requests.get(
-                            url=pic['large']['url'],
-                            headers=HEADERS,
+                    if not download:
+                        thread = threading.Thread(
+                            target=download_image,
+                            kwargs=dict(workpath=workpath, picture=pic),
                         )
-                    except requests.exceptions.RequestException as ex:
-                        print('download image {url} failed, {ex}'.format(url=pic['large']['url'], ex=ex))
-                        download = False
-                    else:
-                        download = True
-
-                    # save image
-                    filename = os.path.basename(pic['large']['url'])
-                    filepath = os.path.join(workpath, filename)
-                    with open(filepath, 'wb') as fobj:
-                        fobj.write(res.content)
-
-                    # update download flag
-                    with sqlite3.connect(DBNAME) as cnx:
-                        cnx.execute('UPDATE images SET download = ? WHERE imageid = ?',
-                            (
-                                download,
-                                pic['pid'],
-                            ),
-                        )
+                        thread.start()
         else:
             break
         page += 1
