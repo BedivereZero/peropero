@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import json
+import logging
 import os
 import re
 import requests
 import sqlite3
+import threading
 
 API = 'http://m.weibo.cn/container/getIndex'
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.84 Safari/537.36'}
@@ -29,7 +31,7 @@ def download_image(workpath, picture):
             headers=HEADERS,
         )
     except requests.exceptions.RequestException as ex:
-        print('download image {url} failed, {ex}'.format(url=picture['large']['url'], ex=ex))
+        logging.info('download image {url} failed, {ex}'.format(url=picture['large']['url'], ex=ex))
         download = False
     else:
         download = True
@@ -49,10 +51,11 @@ def download_image(workpath, picture):
                 picture['pid'],
             ),
         )
+    logging.info('download image {url} succeed'.format(url=picture['large']['url']))
 
 def main():
     """pass"""
-    weiboname = u''
+    weiboname = u'咸鱼面儿'
 
     # create database
     dbpath = os.path.abspath(DBNAME)
@@ -63,7 +66,7 @@ def main():
     workpath = os.path.abspath(os.path.join('.', weiboname))
     if not os.path.exists(workpath):
         os.mkdir(workpath)
-    res = requests.get(url='http://m.weibo.cn/n/{name}'.format(name=weiboname))
+    res = requests.get(url='http://m.weibo.cn/n/{name}'.format(name=weiboname.encode('utf_8')))
     fid = int(re.match(r'^fid%3D(\d+)%26uicode%3D\d+', res.cookies.get('M_WEIBOCN_PARAMS')).group(1))
     userid = int(re.match(r'https://m.weibo.cn/u/(\d+)', res.url).group(1))
 
@@ -89,8 +92,8 @@ def main():
         params=dict(containerid=cid),
     )
     cont = res.json()
-    while cont.get('ok') == 1 and page < 5:
-        print(page)
+    while cont.get('ok') == 1:
+        logging.info('parsing page {num:2d}'.format(num=page))
         data = cont.get('data')
         if data.get('cards'):
             for card in data.get('cards'):
@@ -102,16 +105,15 @@ def main():
                     continue
                 if 'pics' not in card['mblog']:
                     continue
-                print('parsering {text}'.format(text=card['mblog'].get('raw_text')))
                 for pic in card['mblog']['pics']:
                     # insert image info into database if image has not been seen
                     with sqlite3.connect(DBNAME) as cnx:
-                        cur = cnx.execute('SELECT download FROM images WHERE imageid = ?', pic['pid'])
+                        cur = cnx.execute('SELECT imageid FROM images WHERE imageid = ?', (pic['pid'],))
                         record = cur.fetchone()
                         if record:
-                            download = bool(record[0])
+                            logging.info('image {pid} has been seen'.format(pid=pic['pid']))
                         else:
-                            download = False
+                            logging.info('adding image {pid}'.format(pid=pic['pid']))
                             cnx.execute(
                                 'INSERT INTO images(imageid, userid, url) VALUES(?, ?, ?)',
                                 (
@@ -120,13 +122,6 @@ def main():
                                     pic['large']['url'],
                                 ),
                             )
-
-                    if not download:
-                        thread = threading.Thread(
-                            target=download_image,
-                            kwargs=dict(workpath=workpath, picture=pic),
-                        )
-                        thread.start()
         else:
             break
         page += 1
@@ -141,4 +136,8 @@ def main():
         cont = res.json()
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        format='%(asctime)s %(levelname)s %(message)s',
+        level=logging.INFO,
+    )
     main()
