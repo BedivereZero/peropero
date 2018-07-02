@@ -55,7 +55,7 @@ def download_image(workpath, picture):
 
 def main():
     """pass"""
-    weiboname = u'咸鱼面儿'
+    weiboname = u'azusawww'
 
     # create database
     dbpath = os.path.abspath(DBNAME)
@@ -93,15 +93,17 @@ def main():
     )
     cont = res.json()
     while cont.get('ok') == 1:
-        logging.info('parsing page {num:2d}'.format(num=page))
         data = cont.get('data')
         if data.get('cards'):
             for card in data.get('cards'):
                 if card['card_type'] == 11:
                     # what's meaning of card_type = 11
-                    return 302
+                    # return 302
+                    logging.debug('skip: card_type = 11')
+                    continue
                 if 'retweeted_status' in card['mblog']:
                     # skip retweet
+                    logging.debug('skip: retweeted')
                     continue
                 if 'pics' not in card['mblog']:
                     continue
@@ -109,8 +111,7 @@ def main():
                     # insert image info into database if image has not been seen
                     with sqlite3.connect(DBNAME) as cnx:
                         cur = cnx.execute('SELECT imageid FROM images WHERE imageid = ?', (pic['pid'],))
-                        record = cur.fetchone()
-                        if record:
+                        if cur.fetchone():
                             logging.info('image {pid} has been seen'.format(pid=pic['pid']))
                         else:
                             logging.info('adding image {pid}'.format(pid=pic['pid']))
