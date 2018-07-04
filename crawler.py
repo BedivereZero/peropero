@@ -33,12 +33,12 @@ class CrawlerThread(threading.Thread):
 
     def run(self):
         """ run """
-        logger.info('getting userid from weiboname')
+        logger.debug('getting userid from weiboname')
         rsp = requests.get(url='https://m.weibo.cn/n/{}'.format(self.weiboname.encode('utf_8')))
         fid = int(re.match(r'^fid%3D(\d+)%26uicode%3D\d+', rsp.cookies.get('M_WEIBOCN_PARAMS')).group(1))
         self.userid = int(re.match(r'https://m.weibo.cn/u/(\d+)', rsp.url).group(1))
 
-        logger.info('adding user information')
+        logger.debug('adding user information')
         with sqlite3.connect(DBNAME) as cnx:
             cur = cnx.execute('SELECT `name` FROM users WHERE `userid` = ?', (self.userid,))
             row = cur.fetchone()
@@ -46,7 +46,7 @@ class CrawlerThread(threading.Thread):
                 logger.info('create user record {}:{}'.format(self.weiboname.encode('utf_8'), self.userid))
                 cnx.execute('INSERT INTO users VALUES(?, ?)', (self.userid, self.weiboname))
 
-        logger.info('getting weibo container')
+        logger.debug('getting weibo container')
         rsp = requests.get(url=self.API, params=dict(containerid=fid))
         dat = rsp.json()
         for tab in dat['data']['tabsInfo']['tabs']:
@@ -54,7 +54,7 @@ class CrawlerThread(threading.Thread):
                 cid = int(tab.get('containerid'))
                 break
 
-        logger.info('getting pages')
+        logger.debug('getting pages')
         page = 1
         rsp = requests.get(url=self.API, headers=self.HEADERS, params=dict(containerid=cid))
         dat = rsp.json()
