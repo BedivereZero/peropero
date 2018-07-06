@@ -33,6 +33,7 @@ class CrawlerThread(threading.Thread):
 
     def run(self):
         """ run """
+        logger.info('crawler: weibo: {!r}, begin'.format(self.weiboname))
         logger.debug('getting userid from weiboname')
         rsp = requests.get(url='https://m.weibo.cn/n/{}'.format(self.weiboname.encode('utf_8')))
         fid = int(re.match(r'^fid%3D(\d+)%26uicode%3D\d+', rsp.cookies.get('M_WEIBOCN_PARAMS')).group(1))
@@ -66,6 +67,7 @@ class CrawlerThread(threading.Thread):
                     continue
                 if 'retweeted_status' in card['mblog']:
                     logger.debug('skip: retweeted')
+                    continue
                 for pic in card['mblog'].get('pics', list()):
                     with sqlite3.connect(DBNAME) as cnx:
                         cur = cnx.execute('SELECT imageid FROM images WHERE imageid = ?', (pic['pid'],))
@@ -77,3 +79,4 @@ class CrawlerThread(threading.Thread):
             page += 1
             rsp = requests.get(url=self.API, headers=self.HEADERS, params=dict(containerid=cid, page=page))
             dat = rsp.json()
+        logger.info('crawler: weibo: {!r}, end'.format(self.weiboname))

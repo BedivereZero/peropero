@@ -8,6 +8,7 @@ import sqlite3
 import ConfigParser
 
 from crawler import CrawlerThread
+from downloader import DownloadManager
 
 DBNAME = 'peropero.sqlite'
 
@@ -70,10 +71,14 @@ def main():
         crawler = CrawlerThread(weiboname=name)
         crawler.start()
 
+    # start download thread
+    downloader = DownloadManager()
+    downloader.start()
 
 if __name__ == '__main__':
     logging.basicConfig(
         format='%(asctime)s %(name)s %(levelname)s %(message)s',
         level=logging.INFO,
+        filename='peropero.log',
     )
     main()
