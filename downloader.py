@@ -12,7 +12,7 @@ import sqlite3
 import threading
 import time
 
-DBNAME = 'peropero.sqlite'
+DBNAME = os.path.join(os.path.dirname(__file__), 'peropero.sqlite')
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.84 Safari/537.36',
 }
@@ -52,22 +52,26 @@ class DownloadThread(threading.Thread):
             except Queue.Empty:
                 logger.debug('queue is empty, exit')
                 return
-            try:
-                rsp = requests.get(url=task.url, headers=HEADERS)
-            except requests.exceptions.RequestException as ex:
-                logger.warning('download image: {} failed, {}'.format(task.url, ex))
-                return
 
             filepath = os.path.join(self.data_dir, str(task.userid), os.path.basename(task.url))
             if not os.path.exists(os.path.dirname(filepath)):
                 logger.info('creating directory: {}'.format(os.path.dirname(filepath)))
                 os.makedirs(os.path.dirname(filepath))
-            logger.info('saving file: {}'.format(filepath))
-            with open(filepath, 'w') as fp:
-                fp.write(rsp.content)
+            if os.path.exists(filepath):
+                logger.info('skipping file: {}, existed'.format(filepath))
+            else:
+                try:
+                    rsp = requests.get(url=task.url, headers=HEADERS)
+                except requests.exceptions.RequestException as ex:
+                    logger.warning('download image: {} failed, {}'.format(task.url, ex))
+                    return
+                logger.info('saving file: {}'.format(filepath))
+                with open(filepath, 'w') as fp:
+                    fp.write(rsp.content)
 
             with sqlite3.connect(DBNAME) as cnx:
                 cnx.execute('UPDATE images SET `download` = ? WHERE `imageid` = ?', (True, task.imageid))
+            time.sleep(1)
 
 
 class DownloadManager(threading.Thread):
@@ -110,7 +114,7 @@ class DownloadManager(threading.Thread):
 
     def load_config(self):
         """ load config """
-        global_cfg = json.load(fp=open(CONF_PATH))
+        global_cfg = json.load(fp=open(os.path.join(os.path.dirname(__file__), CONF_PATH)))
         download_cfg = global_cfg.get('downloader')
         self.data_dir = download_cfg.get('data-dir')
         self.speed_limit_down = download_cfg.get('speed-limit-down')

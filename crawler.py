@@ -8,7 +8,7 @@ import requests
 import sqlite3
 import threading
 
-DBNAME = 'peropero.sqlite'
+DBNAME = os.path.join(os.path.dirname(__file__), 'peropero.sqlite')
 
 
 logger = logging.getLogger(__name__)

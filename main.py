@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def create_database(path):
     """ create database """
-    with open('create.sql') as fobj:
+    with open(os.path.join(os.path.dirname(__file__), 'create.sql')) as fobj:
         sql = fobj.read()
     with sqlite3.connect(path) as cnx:
         cnx.executescript(sql)
@@ -57,12 +57,12 @@ def main():
     """pass"""
 
     # load weibonames
-    path = os.path.abspath('conf/weibonames.conf')
+    path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'conf/weibonames.conf'))
     with open(path) as fp:
         weibonames = [line.strip().decode('utf_8') for line in fp if not line.startswith('#')]
 
     # create database
-    dbpath = os.path.abspath(DBNAME)
+    dbpath = os.path.abspath(os.path.join(os.path.dirname(__file__), DBNAME))
     if not os.path.exists(dbpath):
         create_database(dbpath)
 
@@ -79,6 +79,6 @@ if __name__ == '__main__':
     logging.basicConfig(
         format='%(asctime)s %(name)s %(levelname)s %(message)s',
         level=logging.INFO,
-        filename='peropero.log',
+        filename='/var/log/peropero.log',
     )
     main()
