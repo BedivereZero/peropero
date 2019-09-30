@@ -19,7 +19,6 @@ class WeiboCreeper(BaseCreeper):
     API = 'https://m.weibo.cn/container/getIndex'
     API_NAME = 'https://m.weibo.cn/n'
     API_USERID = 'https://m.weibo.cn/u'
-    ENCODING = 'utf_8'
     HEADERS = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.84 Safari/537.36',
     }
