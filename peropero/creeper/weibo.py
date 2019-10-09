@@ -13,6 +13,7 @@ from peropero.creeper.base import BaseCreeper
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.NOTSET)
 
+
 class WeiboCreeper(BaseCreeper):
     """creeper on weibo"""
 
@@ -93,12 +94,13 @@ class WeiboCreeper(BaseCreeper):
             rsp = requests.get(self.API, headers=self.HEADERS, params=dict(containerid=self.containerid, page=page))
             if rsp.status_code in range(200, 300):
                 content = rsp.json()
-                ok = content.get('ok')
                 if content.get('ok'):
                     yield content['data']
                     time.sleep(random.randint(4, 16))
                     page = page + 1
                     loop = 3
+                else:
+                    loop = 0
             else:
                 loop = loop - 1
                 time.sleep(random.randint(60, 300))
@@ -116,7 +118,7 @@ class WeiboCreeper(BaseCreeper):
         """pids"""
         for card in self.cards:
             logger.debug('card: %r', card)
-            if card['card_type'] is 11:
+            if card['card_type'] == 11:
                 logger.debug('skip for card_type is 11')
                 continue
             if 'retweeted_status' in card['mblog']:
