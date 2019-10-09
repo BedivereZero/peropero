@@ -3,8 +3,9 @@
 
 
 import os
-from unittest import TestCase
+from unittest import main
 from unittest import skip
+from unittest import TestCase
 
 import mock
 
@@ -70,7 +71,6 @@ class TestWeiboCreeperName(TestWeiboCreeper):
         creeper = WeiboCreeper(name)
         self.assertEqual(creeper.name, name)
 
-
     def test_set_init_notset(self):
         """test set init notset"""
         name = 'hello'
@@ -99,7 +99,6 @@ class TestWeiboCreeperMinMid(TestWeiboCreeper):
         min_mid = 114
         creeper = WeiboCreeper(min_mid=min_mid)
         self.assertEqual(creeper.min_mid, min_mid)
-
 
     def test_set_init_notset(self):
         """test set init notset"""
@@ -136,7 +135,7 @@ class TestWeiboCreeperUserid(TestWeiboCreeper):
         self.assertEqual(userid, self.userid)
         self.mock_get.assert_called_once_with(
             url=os.path.join(
-                WeiboCreeper.API_NAME,
+                WeiboCreeper.API_NAME.encode(WeiboCreeper.ENCODING),
                 self.name.encode(WeiboCreeper.ENCODING),
             ),
         )
@@ -171,8 +170,8 @@ class TestWeiboCreeperFid(TestWeiboCreeper):
         self.assertEqual(fid, self.fid)
         self.mock_get.assert_called_once_with(
             url=os.path.join(
-                WeiboCreeper.API_USERID,
-                str(self.mock_userid),
+                WeiboCreeper.API_USERID.encode(WeiboCreeper.ENCODING),
+                str(self.mock_userid).encode(WeiboCreeper.ENCODING),
             ),
         )
 
@@ -214,7 +213,7 @@ class TestWeiboCreeperContainerid(TestWeiboCreeper):
         containerid = self.creeper.containerid
         self.assertEqual(containerid, self.containerid)
         self.mock_get.assert_called_once_with(
-            url=WeiboCreeper.API,
+            url=WeiboCreeper.API.encode(WeiboCreeper.ENCODING),
             params=dict(containerid=self.creeper.fid),
         )
 
@@ -244,3 +243,7 @@ class TestWeiboCreeperCards(TestWeiboCreeper):
         self.creeper.pages = (dict(cards=(page * 10 + card for card in range(4))) for page in range(4))
         cards = list(self.creeper.cards)
         self.assertListEqual(cards, list(range(16)))
+
+
+if __name__ == "__main__":
+    main()
