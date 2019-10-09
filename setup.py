@@ -7,6 +7,9 @@ from setuptools import setup
 with open('requirements.txt') as f:
     INSTALL_REQUIRES = f.readlines()
 
+with open('test-requirements.txt') as f:
+    TEST_REQUIRES = f.readlines()
+
 
 setup(
     name='peropero',
@@ -17,4 +20,5 @@ setup(
     url='https://github.com/BedivereZero/peropero',
     install_requires=INSTALL_REQUIRES,
     packages=find_packages(),
+    tests_require=TEST_REQUIRES,
 )
