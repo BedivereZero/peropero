@@ -57,7 +57,7 @@ class WeiboCreeper(BaseCreeper):
     def userid(self):
         """userid"""
         if self.__userid is None:
-            rsp = requests.get(url=os.path.join(self.API_NAME, self.name.encode(self.ENCODING)))
+            rsp = requests.get(url=os.path.join(self.API_NAME.encode(self.ENCODING), self.name.encode(self.ENCODING)))
             self.__userid = int(os.path.basename(rsp.url))
             logger.info('userid: %s', self.__userid)
         return self.__userid
@@ -66,7 +66,7 @@ class WeiboCreeper(BaseCreeper):
     def fid(self):
         """fid"""
         if self.__fid is None:
-            rsp = requests.get(url=os.path.join(self.API_USERID, str(self.userid)))
+            rsp = requests.get(url=os.path.join(self.API_USERID.encode(self.ENCODING), str(self.userid).encode(self.ENCODING)))
             m_weibocn_params = rsp.cookies.get('M_WEIBOCN_PARAMS')
             mobj = re.match(r'^fid%3D(\d+)%26uicode%3D\d+', m_weibocn_params)
             self.__fid = int(mobj.group(1))
@@ -77,7 +77,7 @@ class WeiboCreeper(BaseCreeper):
     def containerid(self):
         """containerid"""
         if self.__containerid is None:
-            rsp = requests.get(url=self.API, params=dict(containerid=self.fid))
+            rsp = requests.get(url=self.API.encode(self.ENCODING), params=dict(containerid=self.fid))
             for tab in rsp.json()['data']['tabsInfo']['tabs']:
                 if tab['tab_type'] == 'weibo':
                     self.__containerid = int(tab['containerid'])
@@ -91,7 +91,7 @@ class WeiboCreeper(BaseCreeper):
         loop = 3
         page = 0
         while loop:
-            rsp = requests.get(self.API, headers=self.HEADERS, params=dict(containerid=self.containerid, page=page))
+            rsp = requests.get(self.API.encode(self.ENCODING), headers=self.HEADERS, params=dict(containerid=self.containerid, page=page))
             if rsp.status_code in range(200, 300):
                 content = rsp.json()
                 if content.get('ok'):
