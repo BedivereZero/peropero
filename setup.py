@@ -21,4 +21,10 @@ setup(
     install_requires=INSTALL_REQUIRES,
     packages=find_packages(),
     tests_require=TEST_REQUIRES,
+    entry_points={
+        'console_scripts': [
+            'peropero = peropero.cli:main',
+        ],
+    },
+    zip_safe=True,
 )
