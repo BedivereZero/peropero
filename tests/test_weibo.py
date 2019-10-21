@@ -3,11 +3,11 @@
 
 
 import os
+
 from unittest import main
+from unittest import mock
 from unittest import skip
 from unittest import TestCase
-
-import mock
 
 from peropero.creeper.weibo import WeiboCreeper
 
